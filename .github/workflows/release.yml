@@ -81,30 +81,50 @@ jobs:
   release:
     needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
 
     permissions:
       contents: write
 
     steps:
+      - name: Resolve release version
+        id: resolve_version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="v${{ github.event.inputs.version }}"
+          fi
+
+          if [[ -n "${VERSION}" ]]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download Windows artifacts
+        if: steps.resolve_version.outputs.should_release == 'true'
         uses: actions/download-artifact@v4
         with:
           name: windows-builds
           path: dist
 
       - name: Download macOS artifacts
+        if: steps.resolve_version.outputs.should_release == 'true'
         uses: actions/download-artifact@v4
         with:
           name: macos-builds
           path: dist
 
       - name: Create Release
+        if: steps.resolve_version.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          name: ToonFlow ${{ github.ref_name }}
+          name: ToonFlow ${{ steps.resolve_version.outputs.version }}
+          tag_name: ${{ steps.resolve_version.outputs.version }}
           draft: false
-          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          prerelease: ${{ contains(steps.resolve_version.outputs.version, 'beta') || contains(steps.resolve_version.outputs.version, 'alpha') }}
           generate_release_notes: true
           files: |
             dist/*.exe
