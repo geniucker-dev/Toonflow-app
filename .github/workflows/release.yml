@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version number (e.g., 1.0.0)"
+        description: "Version number (e.g., 1.0.0 or v1.0.0)"
         required: false
         type: string
 
@@ -93,7 +93,12 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             VERSION="${GITHUB_REF_NAME}"
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.version }}" ]]; then
-            VERSION="v${{ github.event.inputs.version }}"
+            INPUT_VERSION="${{ github.event.inputs.version }}"
+            if [[ "${INPUT_VERSION}" == v* ]]; then
+              VERSION="${INPUT_VERSION}"
+            else
+              VERSION="v${INPUT_VERSION}"
+            fi
           fi
 
           if [[ -n "${VERSION}" ]]; then
