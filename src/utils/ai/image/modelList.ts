@@ -39,6 +39,12 @@ const modelList: Owned[] = [
     grid: true,
     type: "ti2i",
   },
+  {
+    manufacturer: "gemini",
+    model: "gemini-3-pro-image-preview",
+    grid: true,
+    type: "ti2i",
+  },
   //Vidu
    {
     manufacturer: "vidu",
