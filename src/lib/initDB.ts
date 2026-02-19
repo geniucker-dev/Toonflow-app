@@ -199,7 +199,6 @@ export default async (knex: Knex, forceInit: boolean = false): Promise<void> => 
         table.text("apiKey");
         table.text("baseUrl");
         table.text("manufacturer");
-        table.text("apiFormat");
         table.integer("createTime");
         table.integer("index");
         table.integer("userId");
