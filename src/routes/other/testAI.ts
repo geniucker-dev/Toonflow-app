@@ -14,10 +14,9 @@ export default router.post(
     apiKey: z.string(),
     baseURL: z.string().optional(),
     manufacturer: z.string(),
-    apiFormat: z.enum(["auto", "gemini", "openai"]).optional(),
   }),
   async (req, res) => {
-    const { modelName, apiKey, baseURL, manufacturer, apiFormat } = req.body;
+    const { modelName, apiKey, baseURL, manufacturer } = req.body;
 
     const getWeatherTool = tool({
       description: "Get the weather in a location",
@@ -45,7 +44,6 @@ export default router.post(
           apiKey,
           baseURL,
           manufacturer,
-          apiFormat,
         },
       );
       res.status(200).send(success(reply));
