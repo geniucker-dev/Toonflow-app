@@ -287,6 +287,24 @@ const modelList: Owned[] = [
   // Gemini
   {
     manufacturer: "gemini",
+    model: "gemini-3-pro",
+    responseFormat: "schema",
+    image: true,
+    think: true,
+    instance: createGoogleGenerativeAI,
+    tool: true,
+  },
+  {
+    manufacturer: "gemini",
+    model: "gemini-3-flash",
+    responseFormat: "schema",
+    image: true,
+    think: true,
+    instance: createGoogleGenerativeAI,
+    tool: true,
+  },
+  {
+    manufacturer: "gemini",
     model: "gemini-2.5-pro",
     responseFormat: "schema",
     image: true,
