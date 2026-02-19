@@ -7,7 +7,7 @@ export default async (input: ImageConfig, config: AIConfig): Promise<string> => 
   const apiKey = config.apiKey.replace("Bearer ", "");
   const taskRes = await axios.post(
     `https://api.apimart.ai/v1/images/generations`,
-    { model: "gemini-3-pro-image-preview", prompt: input.prompt, size: input.aspectRatio, n: 1, resolution: input.size },
+    { model: "gemini-3-pro-image", prompt: input.prompt, size: input.aspectRatio, n: 1, resolution: input.size },
     { headers: { Authorization: apiKey } },
   );
 
