@@ -15,9 +15,10 @@ export default router.post(
     modelType: z.string(),
     apiKey: z.string(),
     manufacturer: z.string(),
+    apiFormat: z.enum(["auto", "gemini", "openai"]).optional(),
   }),
   async (req, res) => {
-    const { id, type, model, baseUrl, apiKey, manufacturer, modelType } = req.body;
+    const { id, type, model, baseUrl, apiKey, manufacturer, modelType, apiFormat } = req.body;
 
     await u.db("t_config").where("id", id).update({
       type,
@@ -26,6 +27,7 @@ export default router.post(
       apiKey,
       manufacturer,
       modelType,
+      apiFormat,
     });
     res.status(200).send(success("编辑成功"));
   },

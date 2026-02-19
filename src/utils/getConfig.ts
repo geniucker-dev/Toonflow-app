@@ -6,6 +6,7 @@ interface BaseConfig {
   model: string;
   apiKey: string;
   manufacturer: string;
+  apiFormat?: "auto" | "gemini" | "openai";
 }
 
 interface TextResData extends BaseConfig {
@@ -54,6 +55,7 @@ export default async function getConfig<T extends AIType>(aiType: T, manufacture
     model: config?.model ?? "",
     apiKey: config?.apiKey ?? "",
     manufacturer: config?.manufacturer ?? "",
+    apiFormat: config?.apiFormat ?? undefined,
   };
 
   if (needBaseURL.includes(aiType)) {

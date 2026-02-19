@@ -14,9 +14,10 @@ export default router.post(
     apiKey: z.string(),
     modelType: z.string(),
     manufacturer: z.string(),
+    apiFormat: z.enum(["auto", "gemini", "openai"]).optional(),
   }),
   async (req, res) => {
-    const { type, model, baseUrl, apiKey, manufacturer, modelType } = req.body;
+    const { type, model, baseUrl, apiKey, manufacturer, modelType, apiFormat } = req.body;
 
     await u.db("t_config").insert({
       type,
@@ -25,6 +26,7 @@ export default router.post(
       apiKey,
       manufacturer,
       modelType,
+      apiFormat,
       createTime: Date.now(),
       userId: 1,
     });

@@ -6,6 +6,7 @@ import { parse } from "best-effort-json-parser";
 import modelList from "./modelList";
 import { z } from "zod";
 import { OpenAIProvider } from "@ai-sdk/openai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 interface AIInput<T extends Record<string, z.ZodTypeAny> | undefined = undefined> {
   system?: string;
   tools?: Record<string, Tool>;
@@ -20,9 +21,10 @@ interface AIConfig {
   apiKey?: string;
   baseURL?: string;
   manufacturer?: string;
+  apiFormat?: "auto" | "gemini" | "openai";
 }
 
-const buildOptions = async (input: AIInput<any>, config: AIConfig = {}) => {
+const buildOptions = async (input: AIInput<any>, config: AIConfig = {}, modelFormat: "gemini" | "openai" = "gemini") => {
   if (!config || !config?.model || !config?.apiKey || !config?.manufacturer) throw new Error("请检查模型配置是否正确");
   const { model, apiKey, baseURL, manufacturer } = { ...config };
   let owned;
@@ -33,7 +35,11 @@ const buildOptions = async (input: AIInput<any>, config: AIConfig = {}) => {
   }
   if (!owned) throw new Error("不支持的模型或厂商");
 
-  const modelInstance = owned.instance({ apiKey, baseURL: baseURL!, name: "xixixi" });
+  const useGeminiOpenAICompatible = manufacturer === "gemini" && modelFormat === "openai";
+
+  const modelInstance = useGeminiOpenAICompatible
+    ? createOpenAICompatible({ apiKey, baseURL, name: "xixixi" })
+    : owned.instance({ apiKey, baseURL: baseURL!, name: "xixixi" });
 
   const maxStep = input.maxStep ?? (input.tools ? Object.keys(input.tools).length * 5 : undefined);
   const outputBuilders: Record<string, (schema: any) => any> = {
@@ -52,7 +58,7 @@ const buildOptions = async (input: AIInput<any>, config: AIConfig = {}) => {
   };
 
   const output = input.output ? (outputBuilders[owned.responseFormat]?.(input.output) ?? null) : null;
-  const chatModelManufacturer = ["doubao", "other", "openai"];
+  const chatModelManufacturer = ["doubao", "other", "openai", ...(useGeminiOpenAICompatible ? ["gemini"] : [])];
   const modelFn = chatModelManufacturer.includes(owned.manufacturer) ? (modelInstance as OpenAIProvider).chat(model!) : modelInstance(model!);
   return {
     config: {
@@ -75,24 +81,52 @@ const ai = Object.create({}) as {
 };
 
 ai.invoke = async (input: AIInput<any>, config: AIConfig) => {
-  const options = await buildOptions(input, config);
-  const result = await generateText(options.config);
-  if (options.responseFormat === "object" && input.output) {
-    const pattern = /{[^{}]*}|{(?:[^{}]*|{[^{}]*})*}/g;
-    const jsonLikeTexts = Array.from(result.text.matchAll(pattern), (m) => m[0]);
+  const preferredFormat = config.apiFormat ?? "auto";
 
-    const res = jsonLikeTexts.map((jsonText) => parse(jsonText));
-    return res[0];
+  const tryGenerate = async (format: "gemini" | "openai") => {
+    const options = await buildOptions(input, config, format);
+    const result = await generateText(options.config);
+    if (options.responseFormat === "object" && input.output) {
+      const pattern = /{[^{}]*}|{(?:[^{}]*|{[^{}]*})*}/g;
+      const jsonLikeTexts = Array.from(result.text.matchAll(pattern), (m) => m[0]);
+
+      const res = jsonLikeTexts.map((jsonText) => parse(jsonText));
+      return res[0];
+    }
+    if (options.responseFormat === "schema" && input.output) {
+      return JSON.parse(result.text);
+    }
+    return result;
+  };
+
+  const canFallback = config.manufacturer === "gemini";
+  if (preferredFormat === "gemini" || !canFallback) return tryGenerate("gemini");
+  if (preferredFormat === "openai") return tryGenerate("openai");
+
+  try {
+    return await tryGenerate("gemini");
+  } catch (error) {
+    return await tryGenerate("openai");
   }
-  if (options.responseFormat === "schema" && input.output) {
-    return JSON.parse(result.text);
-  }
-  return result;
 };
 
 ai.stream = async (input: AIInput, config: AIConfig) => {
-  const options = await buildOptions(input, config);
-  return streamText(options.config);
+  const preferredFormat = config.apiFormat ?? "auto";
+  const canFallback = config.manufacturer === "gemini";
+
+  const tryStream = async (format: "gemini" | "openai") => {
+    const options = await buildOptions(input, config, format);
+    return streamText(options.config);
+  };
+
+  if (preferredFormat === "gemini" || !canFallback) return tryStream("gemini");
+  if (preferredFormat === "openai") return tryStream("openai");
+
+  try {
+    return await tryStream("gemini");
+  } catch (error) {
+    return await tryStream("openai");
+  }
 };
 
 export default ai;
